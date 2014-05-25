@@ -1,11 +1,13 @@
 (ql:quickload '(:bordeaux-threads
 		:cl-notify
 		:closer-mop
+		:lparallel
 		:local-time
 		:sqlite))
 
 (use-package '(:bordeaux-threads
 	       :closer-mop
+	       :lparallel
 	       :sqlite))
 
 (defvar *db-flux* '())
@@ -196,3 +198,29 @@
 			:timestamp timestamp)))
     (flux-do binc-entry))
   (format-binc-table))
+
+
+;(set-macro-character #\& (get-macro-character #\)))
+
+;(set-dispatch-macro-character #\# #\&
+;    #'(lambda (stream char1 char2)
+;	(let ((accum nil)
+;	      (pair (read-delimited-list #\] stream t)))
+;	  (do ((i (ceiling (car pair)) (1+ i)))
+;	      ((> i (floor (cadr pair)))
+;	       (list 'quote (nreverse accum)))
+;	    (push i accum)))))
+			      
+
+;(let* ((f (
+
+
+(let* ((p (promise))
+       (f (future
+            (sleep 0.05)
+            (fulfill p 'f-was-here)))
+       (g (future
+            (sleep 0.049999)
+            (fulfill p 'g-was-here))))
+  (list (force p) (force f) (force g)))
+g
