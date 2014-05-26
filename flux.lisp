@@ -7,7 +7,6 @@
 
 (use-package '(:bordeaux-threads
 	       :closer-mop
-	       :lparallel
 	       :sqlite))
 
 (defvar *db-flux* '())
@@ -135,6 +134,9 @@
   (let ((cmd (conc-flux-sql-cmd flux-entry)))
     (with-open-database (@db "database-flux-test-01.db")
       (execute-non-query @db cmd))))
+
+
+
 			     
 
 (defun &binc- (binc-entry)
@@ -187,6 +189,9 @@
 		 (if (read-from-string (nth 5 entry)) "L" "_")
 		 (if (read-from-string (nth 6 entry)) "R" "_"))))
   (format t "~%~T~T....~%~T~T~a~%~%" (retrieve-master-mg)))
+
+(defun &list ()
+  (format-binc-table))
 	    
 
 (defun &binc (mg-dosage &key operation lhs rhs unit-name timestamp)
@@ -198,6 +203,29 @@
 			:timestamp timestamp)))
     (flux-do binc-entry))
   (format-binc-table))
+
+(defun cooldown-confirm-add (binc-entry-arguments)
+  (let ((yesorno (read-char)))
+    (cond ((equal yesorno #\y)
+	   (eval (append '(&binc) binc-entry-arguments)))
+	  ((equal yesorno #\n)
+	   (&list))
+	  (t
+	   nil))))
+
+(defun cooldown (minutes &rest binc-entry-arguments)
+  ;create a cooldown object that knows when the cooldown ends
+  ;and when it was created
+  ;and maybe the theoretical binc whose arguments are passed
+  (make-thread
+   #'(lambda ()
+       (sleep (* 60 minutes))
+       (format t "~%~%a cooldown has ended. attached to it is:~%~%~a~%~%shall we add this binc? (y/n) >> going ahead and doing it..." binc-entry-arguments)
+       (cl-notify:notify-init)
+       (cl-notify:dispatch-notification ":CL-FLUX" :body (format nil "cooldown for ~a ended!" binc-entry-arguments))
+       (eval (append '(&binc) binc-entry-arguments)))))
+;  (thread-yield))
+
 
 
 ;(set-macro-character #\& (get-macro-character #\)))
@@ -215,12 +243,12 @@
 ;(let* ((f (
 
 
-(let* ((p (promise))
-       (f (future
-            (sleep 0.05)
-            (fulfill p 'f-was-here)))
-       (g (future
-            (sleep 0.049999)
-            (fulfill p 'g-was-here))))
-  (list (force p) (force f) (force g)))
-g
+;(defun sample-of-lparallel ()
+;(let* ((p (promise))
+;       (f (future
+;            (sleep 0.05)
+;            (fulfill p 'f-was-here)))
+;       (g (future
+;            (sleep 0.049999)
+;            (fulfill p 'g-was-here))))
+;  (list (force p) (force f) (force g))))
