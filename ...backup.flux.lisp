@@ -1,13 +1,13 @@
 (ql:quickload '(:bordeaux-threads
-		:cl-markup
+		:cl-notify
 		:closer-mop
-		:hunchentoot
+		:lparallel
 		:local-time
 		:sqlite))
 
 (use-package '(:bordeaux-threads
 	       :closer-mop
-	       :hunchentoot
+	       :lparallel
 	       :sqlite))
 
 (defvar *db-flux* '())
@@ -135,9 +135,6 @@
   (let ((cmd (conc-flux-sql-cmd flux-entry)))
     (with-open-database (@db "database-flux-test-01.db")
       (execute-non-query @db cmd))))
-
-
-
 			     
 
 (defun &binc- (binc-entry)
@@ -190,9 +187,6 @@
 		 (if (read-from-string (nth 5 entry)) "L" "_")
 		 (if (read-from-string (nth 6 entry)) "R" "_"))))
   (format t "~%~T~T....~%~T~T~a~%~%" (retrieve-master-mg)))
-
-(defun &list ()
-  (format-binc-table))
 	    
 
 (defun &binc (mg-dosage &key operation lhs rhs unit-name timestamp)
@@ -204,139 +198,6 @@
 			:timestamp timestamp)))
     (flux-do binc-entry))
   (format-binc-table))
-
-(defun cooldown-confirm-add (binc-entry-arguments)
-  (let ((yesorno (read-char)))
-    (cond ((equal yesorno #\y)
-	   (eval (append '(&binc) binc-entry-arguments)))
-	  ((equal yesorno #\n)
-	   (&list))
-	  (t
-	   nil))))
-
-(defun cooldown (minutes &rest binc-entry-arguments)
-  ;create a cooldown object that knows when the cooldown ends
-  ;and when it was created
-  ;and maybe the theoretical binc whose arguments are passed
-  (make-thread
-   #'(lambda ()
-       (sleep (* 60 minutes))
-       (format t "~%~%a cooldown has ended. attached to it is:~%~%~a~%~%shall we add this binc? (y/n) >> going ahead and doing it..." binc-entry-arguments)
-       (cl-notify:notify-init)
-       (cl-notify:dispatch-notification ":CL-FLUX" :body (format nil "cooldown for ~a ended!" binc-entry-arguments))
-       (eval (append '(&binc) binc-entry-arguments)))))
-;  (thread-yield))
-
-
-(defun id-gen ()
-  (let* ((username (sb-posix:getenv "USER"))
-	 (charlist (concatenate 'list username))
-	 (charcodes (mapcar (lambda (y) (char-code y)) charlist))
-	 (sumcodes (eval (append '(+) charcodes)))
-	 (uname-chunk (if (< sumcodes 1000)
-			  (* 100 sumcodes)
-			  (* 10 sumcodes)))
-	 (userid (sb-posix:getuid))
-	 (uid-string (write-to-string userid))
-	 (uid-chunk (cond ((zerop userid)
-			   "00000")
-			  ((< userid 10)
-			   (concatenate 'string "0000" uid-string))
-			  ((< userid 100)
-			   (concatenate 'string "000" uid-string))
-			  ((< userid 1000)
-			   (concatenate 'string "00" uid-string))
-			  ((< userid 10000)
-			   (concatenate 'string "0" uid-string))))
-	 (hostname (machine-instance))
-	 (hn-charlist (concatenate 'list hostname))
-	 (hn-charcodes (mapcar (lambda (y) (char-code y)) hn-charlist))
-	 (hn-sumcodes (eval (append '(+) hn-charcodes)))
-	 (hname-chunk (cond ((> hn-sumcodes 9999)
-			     hn-sumcodes)
-			    ((> hn-sumcodes 999)
-			     (* 10 hn-sumcodes))
-			    ((< hn-sumcodes 1000)
-			     (* 100 hn-sumcodes))))
-	 (timestamp (get-universal-time)))
-    (with-output-to-string (str)
-      (format str "~a-~a-~a-~a"
-	      uid-chunk hname-chunk uname-chunk timestamp)
-      str)))
-    
-
-;; username section
-
-;; 1 - take ascii code values of letters of username
-;; 2 - add the values all together
-;; 3 - if the value is a four-digit-number, multiply it by 10 & return it
-;; 4 - if the value is a three-digit-number, multiply it by 100 & return it
-
-
-
-
-
-
-(defclass cooldown ()
-  ((unique-id :accessor unique-id
-	      :initarg :unique-id
-	      :initform (id-gen))
-   (timestamp-created :accessor timestamp-created
-		      :initarg :timestamp-created
-		      :initform (get-universal-time))
-   (timestamp-beginning :accessor timestamp-beginning
-			:initarg :timestamp-beginning)
-   (length-in-seconds :accessor length-in-seconds
-		      :initarg :length-in-seconds)
-   (timestamp-ending :accessor timestamp-ending
-		     :initarg :timestamp-ending)
-   (status :accessor status
-	   :initarg :status)
-   (pf-each :accessor pf-each
-	    :initarg :pf-each)
-   (periodic-function :accessor periodic-function
-		      :initarg :periodic-function)
-   (finale-function :accessor finale-funcation
-		    :initarg :finale-function)
-   (alias :accessor alias
-	  :initarg :alias)
-   (repeated-p :accessor repeated-p
-	       :initarg :repeated-p)
-   (repetitions :accessor repetitions
-		:initarg :repetitions)
-   (prompt-p :accessor prompt-p
-	     :initarg :prompt-p)
-   (prompt-timeout :accessor prompt-timeout
-		   :initarg :prompt-timeout)
-   (prompt-toggle-repeat-p :accessor prompt-toggle-repeat-p
-			   :initarg :prompt-toggle-repeat-p)))
-
-
-(defvar *master-port* 9903)
-
-(defvar *master-acceptor*
-  (make-instance 'easy-acceptor :port *master-port*))
-
-(defun init-web () (start *master-acceptor*))
-
-(defun kill-web () (stop *master-acceptor*))
-
-(defun uri-binc-entry-handler ()
-  (define-easy-handler (weblog :uri "/binc-entry-handler") (mg lhs rhs)
-    (format t "~%~%MG: ~a~%~%" mg)
-    (setf (content-type*) "text/html")
-    (format nil "~a"
-	    (markup:html
-	     (:head
-	      (:title "cl-flux w3-gui"))
-	     (:body
-	      (:div
-	       (:p "mg: " mg)
-	       (:p "lhs: " lhs)
-	       (:p "rhs: " rhs)))))))
-
-
-
 
 
 ;(set-macro-character #\& (get-macro-character #\)))
@@ -354,12 +215,12 @@
 ;(let* ((f (
 
 
-;(defun sample-of-lparallel ()
-;(let* ((p (promise))
-;       (f (future
-;            (sleep 0.05)
-;            (fulfill p 'f-was-here)))
-;       (g (future
-;            (sleep 0.049999)
-;            (fulfill p 'g-was-here))))
-;  (list (force p) (force f) (force g))))
+(let* ((p (promise))
+       (f (future
+            (sleep 0.05)
+            (fulfill p 'f-was-here)))
+       (g (future
+            (sleep 0.049999)
+            (fulfill p 'g-was-here))))
+  (list (force p) (force f) (force g)))
+g
