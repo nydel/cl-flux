@@ -1,0 +1,7 @@
+;(+ 3 5)
+;(+ 10 10 10)
+;(setq x 100)
+;(setq y 20)
+;(* 300 300 9)
+;(setq z (+ x y))
+;(ql:quickload 'drakma)

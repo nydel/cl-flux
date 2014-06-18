@@ -1,5 +1,6 @@
 (ql:quickload '(:bordeaux-threads
 		:cl-markup
+		:cl-notify
 		:closer-mop
 		:hunchentoot
 		:local-time
@@ -311,6 +312,8 @@
    (prompt-toggle-repeat-p :accessor prompt-toggle-repeat-p
 			   :initarg :prompt-toggle-repeat-p)))
 
+#|
+
 
 (defvar *master-port* 9903)
 
@@ -335,7 +338,7 @@
 	       (:p "lhs: " lhs)
 	       (:p "rhs: " rhs)))))))
 
-
+|#
 
 
 
