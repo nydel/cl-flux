@@ -2,7 +2,7 @@
 		:cl-daemonize
 		:cl-fad))
 
-(defparameter *filepath* #P"commands")
+(defparameter *filepath* "/home/jo/owncloud/Notes/flux.txt")
 
 (defun read-commands-file ()
   (with-open-file (@file *filepath* :direction :input)
@@ -11,10 +11,12 @@
 	 collect line)))
 
 (defun write-commands-file (lines)
-  (with-open-file (@file *filepath* :direction :output
-			            :if-exists :rename
-				    :if-does-not-exist :create)
-    (format @file "~{~a~^~&~}" (reverse lines))))
+  (let* ((lines2 (reverse lines))
+	 (lines3 (push "flux" lines2)))
+    (with-open-file (@file *filepath* :direction :output
+			   :if-exists :overwrite
+			   :if-does-not-exist :create)
+      (format @file "~{~a~^~&~}" lines3))))
 
 (defun remove-commented-lines (list)
   (remove-if #'(lambda (y)
@@ -31,7 +33,7 @@
     (cons (eval cmd) (concatenate 'string ";" string))))
 
 (defun process-commands-file ()
-  (let* ((file-content (read-commands-file))
+  (let* ((file-content (cdr (read-commands-file)))
 	 (command-contents-next nil))
     (loop for i in file-content
        collect (cond ((commented-p i)
@@ -47,11 +49,13 @@
   (mapcar #'(lambda (y) (when (string-equal (bt:thread-name y) "command-file-thread")
 			  (bt:destroy-thread y))) (bt:all-threads)))
 
-(defun quit-thread ()
-  (setf *quit-thread* t))
-
 (defvar *quit-thread* nil)
 (setf *quit-thread* nil)
+
+
+
+(defun quit-thread ()
+  (setf *quit-thread* t))
 
 (defun thread-command-file (&key every stop-for announce-p)
   (let ((every (if every every 10))

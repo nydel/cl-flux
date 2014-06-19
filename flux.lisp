@@ -6,6 +6,8 @@
 		:local-time
 		:sqlite))
 
+(load #P"/home/jo/owncloud/projects/cl-flux/repl-from-file/repl-from-file.lisp")
+
 (use-package '(:bordeaux-threads
 	       :closer-mop
 	       :hunchentoot
