@@ -2,7 +2,7 @@
 		:cl-daemonize
 		:cl-fad))
 
-(defparameter *filepath* "/home/jo/owncloud/Notes/flux.txt")
+(defparameter *filepath* "/home/cl-user/owncloud/Notes/flux.txt")
 
 (defun read-commands-file ()
   (with-open-file (@file *filepath* :direction :input)
